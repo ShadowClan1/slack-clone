@@ -1,0 +1,123 @@
+const app = require("../app");
+const http = require("http");
+const connectDb = require("../database/db");
+const { Server } = require("socket.io");
+const httpServer = http.createServer(app);
+httpServer.listen(5000);
+const socket = require("socket.io");
+const Message = require("../models/message");
+const socketHash = require("../socket.io/socket");
+const Group = require("../models/group");
+const User = require("../models/user");
+const { HasMany } = require("sequelize");
+const io = new Server(httpServer, {
+  cors: {},
+});
+
+const hashMap = new socketHash();
+const onlineUsers = new Set()
+
+
+
+
+io.on("connection", (socket) => {
+  hashMap.setId(socket.handshake.auth.userId, socket.id);
+onlineUsers.add(socket.handshake.auth.userId);
+io.emit('ONLINE_USERS', Array.from(onlineUsers));
+  // console.log(hashMap);
+  console.log(onlineUsers)
+ 
+  socket.on("PRIVATE_MESSAGE", async ({ From, To, messageText }) => {
+    let time = new Date().getTime(),
+      messageType = 0,
+      ToGroup = null,
+      file = null,
+      metaData = null;
+
+    let message = await (
+      await Message.create({
+        From,
+        To,
+        ToGroup,
+        file,
+        time,
+        messageType,
+        messageText,
+        metaData,
+      })
+    ).populate({ path: "From", select: ["name"] });
+
+    let toId = hashMap.getId(To._id);
+
+    socket.to(toId).emit("PRIVATE_MESSAGE_R", message);
+  });
+  socket.on("GROUP_MESSAGE", async ({ From, To, messageText }) => {
+    let time = new Date().getTime(),
+      messageType = 0,
+      file = null,
+      metaData = null;
+
+    let message = await (
+      await (
+        await Message.create({
+          From,
+          ToGroup: To,
+          file,
+          time,
+          messageType,
+          messageText,
+          metaData,
+        })
+      ).populate("ToGroup")
+    ).populate({ path: "From", select: ["name"] });
+
+    console.log(message, "Group message");
+    const groupMembersId = message.ToGroup.Members.map((e) => {
+      return hashMap.getId(e.toString());
+    }).filter((e) => e != undefined);
+    io.to(groupMembersId).emit("GROUP_MESSAGE_R", message);
+  });
+
+  socket.on("TYPING", (data) => {
+    console.log(data.messageText);
+    const toId = hashMap.getId(data.To._id);
+    socket.to(toId).emit("TYPING_R", data);
+  });
+
+  socket.on("GET_GROUP_DETAILS", async (id) => {
+    let groupData = await await await Group.findById(id)
+      .populate("Members")
+      .populate({ path: "CreatedBy", select: ["name"] });
+
+
+    console.log('group data sent')
+
+    socket.emit("GET_GROUP_DETAILS_R", groupData);
+  });
+  socket.on("GET_USER_DETAILS", async (id) => {
+    
+    let userData = await await await User.findById(id);
+
+
+    socket.emit("GET_USER_DETAILS_R", userData);
+  });
+
+  socket.on("disconnect", () => {
+    onlineUsers.delete(socket.handshake.auth.userId)
+    io.emit('ONLINE_USERS', Array.from(onlineUsers));
+    console.log(onlineUsers, "now online users");
+    console.log(socket.handshake.auth.userId, "has left the arena");
+  });
+});
+
+connectDb()
+  .then(() => {
+    console.log("Db is connected");
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
+
+httpServer.on("listening", () => {
+  console.log("I'm on");
+});
