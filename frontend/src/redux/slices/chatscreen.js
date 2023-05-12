@@ -66,6 +66,13 @@ const chatscreen = createSlice({
       else state.single.data.type = "USER";
       console.log(payload);
     },
+    getProfile: (state, { payload }) => {
+      state.single.type = "PROFILE";
+      state.single.data = payload;
+
+      socket.emit('GET_USER_PROFILE', payload)
+    
+    },
     setOnlineUsers: (state, { payload }) => {
       const set = new Set(payload);
       state.array.forEach((e) => {
@@ -73,6 +80,17 @@ const chatscreen = createSlice({
         if (set.has(e._id)) e.online = true;
       });
     },
+    setProfile :(state, {payload}) =>{
+      state.single.type = 'PROFILE';
+      state.single.data = payload
+    },
+    getAllUsersUpdatedPICSIO : (state, {payload})=>{
+      state.array.forEach(e=>{
+        if(e._id == payload._id){
+          e.profilePic = payload.profilePic
+        }
+      })
+    }
 
 
   },
@@ -93,6 +111,6 @@ const chatscreen = createSlice({
   },
 });
 
-export const { createGroup, addUnreadChat, setUnreadFalse, getDetails , setOnlineUsers} =
+export const { createGroup, addUnreadChat, setUnreadFalse, getDetails , setOnlineUsers, getProfile, setProfile, getAllUsersUpdatedPICSIO} =
   chatscreen.actions;
 export default chatscreen.reducer;

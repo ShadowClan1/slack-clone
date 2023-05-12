@@ -15,18 +15,20 @@ const io = new Server(httpServer, {
 });
 
 const hashMap = new socketHash();
-const onlineUsers = new Set()
-
-
-
+const onlineUsers = new Set();
 
 io.on("connection", (socket) => {
   hashMap.setId(socket.handshake.auth.userId, socket.id);
-onlineUsers.add(socket.handshake.auth.userId);
-io.emit('ONLINE_USERS', Array.from(onlineUsers));
-  // console.log(hashMap);
-  console.log(onlineUsers)
- 
+  onlineUsers.add(socket.handshake.auth.userId);
+  io.emit("ONLINE_USERS", Array.from(onlineUsers));
+
+socket.on('GET_USER_DATA', async (id)=>{
+  
+  const user = await User.findById(id)
+  socket.emit('GET_USER_DATA_R', user)
+})
+
+
   socket.on("PRIVATE_MESSAGE", async ({ From, To, messageText }) => {
     let time = new Date().getTime(),
       messageType = 0,
@@ -71,7 +73,7 @@ io.emit('ONLINE_USERS', Array.from(onlineUsers));
       ).populate("ToGroup")
     ).populate({ path: "From", select: ["name"] });
 
-    console.log(message, "Group message");
+    
     const groupMembersId = message.ToGroup.Members.map((e) => {
       return hashMap.getId(e.toString());
     }).filter((e) => e != undefined);
@@ -79,8 +81,15 @@ io.emit('ONLINE_USERS', Array.from(onlineUsers));
   });
 
   socket.on("TYPING", (data) => {
-    console.log(data.messageText);
-    const toId = hashMap.getId(data.To._id);
+   
+   
+    let toId = hashMap.getId(data.To._id);
+    if(data.type == 'GROUP') {
+  
+      toId = data.To.Members.map(e=>hashMap.getId(e)).filter(e=>e!=undefined).filter(e=>e!=hashMap.getId(data.From._id)) 
+    }
+
+
     socket.to(toId).emit("TYPING_R", data);
   });
 
@@ -89,22 +98,51 @@ io.emit('ONLINE_USERS', Array.from(onlineUsers));
       .populate("Members")
       .populate({ path: "CreatedBy", select: ["name"] });
 
-
-    console.log('group data sent')
+    console.log("group data sent");
 
     socket.emit("GET_GROUP_DETAILS_R", groupData);
   });
   socket.on("GET_USER_DETAILS", async (id) => {
-    
-    let userData = await await await User.findById(id);
-
+    let userData = await User.findById(id).select(["name", "email"]);
 
     socket.emit("GET_USER_DETAILS_R", userData);
   });
 
+socket.on('PROFILE_PIC_CHANGE', async (id)=>{
+  console.log(id)
+  const data = await User.findOne({_id : id}).select(['_id', 'profilePic'])
+  io.emit('GET_UPDATED_PROFILE_PIC_ALL_USERS_R', (data) )
+ 
+})
+
+  socket.on("GET_USER_PROFILE", async (id) => {
+    
+    let user = await User.findById(id);
+    socket.emit("GET_USER_PROFILE_R", user);
+  });
+
+
+  socket.on("DELETE_MESSAGE", async (data)=>{
+
+    console.log(data)
+  
+    let message = await Message.deleteOne({_id : data.messageId, From : data.senderId})
+    if(message.acknowledged) {
+      socket.emit
+    }
+if(data.toId){
+socket.to(hashMap.getId(data.toId)).emit('DELETE_MESSAGE_R', data.messageId)
+console.log(hashMap.getId(data.toId))
+}
+if(data.toGroup){
+io.emit('DELETE_MESSAGE_R', data.messageId)
+}
+
+  })
+
   socket.on("disconnect", () => {
-    onlineUsers.delete(socket.handshake.auth.userId)
-    io.emit('ONLINE_USERS', Array.from(onlineUsers));
+    onlineUsers.delete(socket.handshake.auth.userId);
+    io.emit("ONLINE_USERS", Array.from(onlineUsers));
     console.log(onlineUsers, "now online users");
     console.log(socket.handshake.auth.userId, "has left the arena");
   });

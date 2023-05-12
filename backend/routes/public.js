@@ -1,3 +1,4 @@
+const { ckeditorUpload, uploadSingle } = require("../common/multer");
 const Group = require("../models/group");
 const Message = require("../models/message");
 const User = require("../models/user");
@@ -70,7 +71,12 @@ app.get("/getUser/:id", async (req, res) => {
 app.post("/getChat", async (req, res) => {
   try {
     let { From, To } = req.body;
-    let data = await Message.find({ $or :  [{From , To} , {From : To, To : From}] }).populate("From");
+    let data = await Message.find({
+      $or: [
+        { From, To },
+        { From: To, To: From },
+      ],
+    }).populate("From");
     // let data_op = await Message.find({ From: To, To: From })
     //   .populate("From")
     //   .populate("To");
@@ -161,7 +167,42 @@ app.get("/getGroup/:id", async (req, res) => {
   }
 });
 
- 
+app.post("/ckeditorUpload", uploadSingle, async (req, res) => {
+  try {
+    const data = req.file;
 
+    const url = `http://192.168.3.136:5000/${data.path}`;
+
+    res.status(200).json({ default: url });
+  } catch (err) {
+    res.status(500).json({ err: err.message, success: false });
+  }
+});
+
+app.post("/changeProfilePicture", uploadSingle, async (req, res) => {
+  try {
+    let file = req.file;
+    let { id } = req.body;
+    if (file == undefined)
+      return res.status(300).json({ error: "couldnot upload the same" });
+
+    let data = await User.updateOne({ _id: id }, { profilePic: file.filename });
+
+    res.status(200).json({ data, success: true });
+  } catch (err) {
+    res.status(500).json({ err: err.message, success: false });
+  }
+});
+
+app.get('/set', async(req,res)=>{
+  try{
+ const data = await User.updateMany({}, {profilePic : 'default.jpg'})
+  res.status(200).json({data , success : true })
+  }
+  catch(err){
+   res.status(500).json({err : err.message, success: false})
+  
+  }
+})
 
 module.exports = app;

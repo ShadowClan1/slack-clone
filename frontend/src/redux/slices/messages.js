@@ -63,7 +63,17 @@ const messages = createSlice({
     //  console.log(payload, "Typing")
       socket.emit("TYPING", payload);
 
+    },
+    deleteMessage : (state, {payload})=>{
+      socket.emit('DELETE_MESSAGE', payload)
+      state.array = state.array.filter(e=>e._id != payload.messageId)
+    },
+    afterDelete: (state, {payload})=>{
+      state.array = state.array.filter(e=>e._id!== payload)
     }
+
+
+    
   },
   extraReducers: (builder) => {
     builder.addCase(getChat.fulfilled, (state, { payload }) => {
@@ -75,6 +85,6 @@ const messages = createSlice({
   },
 });
 
-export const { sendMessageSocketIO, addMessageToArray, sendGroupMessageIO , typing} =
+export const { sendMessageSocketIO, addMessageToArray, sendGroupMessageIO , typing, deleteMessage, afterDelete} =
   messages.actions;
 export default messages.reducer;

@@ -16,7 +16,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { addUnreadChat, getDetails } from "../redux/slices/chatscreen";
 import { addUnreadChatG } from "../redux/slices/group";
 import sendNotification from "../common/notifications";
-import { addNotification, closeNotification } from "../redux/slices/notification";
+import {
+  addNotification,
+  closeNotification,
+} from "../redux/slices/notification";
 
 const ChatScreen = () => {
   const navigate = useNavigate();
@@ -31,17 +34,20 @@ const ChatScreen = () => {
   const handleGetDetails = () => {
     if (screen.type == "GROUP")
       socket.emit("GET_GROUP_DETAILS", screen.data._id);
-    if (screen.type == "CHAT")
-      socket.emit("GET_USER_DETAILS", screen.data._id);
+    if (screen.type == "CHAT") socket.emit("GET_USER_DETAILS", screen.data._id);
 
- if(screen.type == 'GROUP')   socket.on("GET_GROUP_DETAILS_R", (data) => {
-  console.log(data)
-  dispatch(getDetails(data));  socket.off("GET_GROUP_DETAILS_R")
- }); 
- if(screen.type == 'CHAT')   socket.on("GET_USER_DETAILS_R", (data) => {
-  console.log(data)
-  dispatch(getDetails(data));  socket.off("GET_USER_DETAILS_R")
- }); 
+    if (screen.type == "GROUP")
+      socket.on("GET_GROUP_DETAILS_R", (data) => {
+        console.log(data);
+        dispatch(getDetails(data));
+        socket.off("GET_GROUP_DETAILS_R");
+      });
+    if (screen.type == "CHAT")
+      socket.on("GET_USER_DETAILS_R", (data) => {
+        console.log(data);
+        dispatch(getDetails(data));
+        socket.off("GET_USER_DETAILS_R");
+      });
   };
 
   useEffect(() => {
@@ -54,34 +60,56 @@ const ChatScreen = () => {
 
     socket.off("GROUP_MESSAGE_R").on("GROUP_MESSAGE_R", (data) => {
       // sendNotification(data.messageText, data.ToGroup.name)
-    dispatch(addNotification({title : data.ToGroup.name, body : data.messageText, type : 'GROUP'}))
-setTimeout(()=>{dispatch(closeNotification())}, 4000);
 
-      if (screen.data._id == data.ToGroup._id) {
+      if (screen.data._id == data.ToGroup?._id) {
         dispatch(addMessageToArray(data));
-      } else dispatch(addUnreadChatG(data));
+      } else {
+        dispatch(addUnreadChatG(data));
+        dispatch(
+          addNotification({
+            title: data.ToGroup.name,
+            body: data.messageText,
+            type: "GROUP",
+          })
+        );
+        setTimeout(() => {
+          dispatch(closeNotification());
+        }, 4000);
+      }
     });
 
     socket.off("PRIVATE_MESSAGE_R").on("PRIVATE_MESSAGE_R", (data) => {
       // sendNotification(data.messageText, data.From.name)
-    console.log(data, screen);
-      dispatch(addNotification({title : data?.From?.name, body : data.messageText, type : 'USER'}))
-      setTimeout(()=>{dispatch(closeNotification())}, 4000);
+      console.log(data, screen);
 
       if (screen.data._id == data.From._id) {
         dispatch(addMessageToArray(data));
       } else {
+        dispatch(
+          addNotification({
+            title: data?.From?.name,
+            body: data.messageText,
+            type: "USER",
+          })
+        );
+        setTimeout(() => {
+          dispatch(closeNotification());
+        }, 4000);
         dispatch(addUnreadChat(data));
       }
     });
 
     socket.off("TYPING_R").on("TYPING_R", (data) => {
-      if (screen.type == "CHAT" && screen.data._id == data.From._id)
+      console.log(data);
+      if (
+        (screen.type == "CHAT" && screen.data._id == data.From._id) ||
+        (screen.type == "GROUP" && screen.data._id == data.To._id)
+      )
         setTyping({ data: data.messageText, name: data.From.name });
 
       setTimeout(() => setTyping({ name: "", data: "" }), 2000);
     });
-  }, [screen.data._id, screen.type]);
+  }, [screen?.data?._id, screen?.type]);
 
   return (
     <div className="flex flex-col relative">
@@ -94,17 +122,20 @@ setTimeout(()=>{dispatch(closeNotification())}, 4000);
               {screen.data.name.toUpperCase()}{" "}
             </span>{" "}
             <div className="text-xs text-purple-900  ">
-              {typing.name.length > 1 && `is Typing something `}{" "}
+              {typing.name.length > 1 &&
+                `${
+                  screen.type == "GROUP" && typing.name
+                } is Typing something `}{" "}
             </div>
           </div>
           <Messages messages={messages} />
           <FooterBox />{" "}
         </>
       )}
-      {(screen.type == "CREATE_GROUP" || screen.type == 'DETAILS') && (
+      {(screen.type == "CREATE_GROUP" ||
+        screen.type == "DETAILS" ||
+        screen.type == "PROFILE") && (
         <>
-          
-
           <Multipurpose />
           {/* <Messages messages={messages} />
           <FooterBox />{" "} */}

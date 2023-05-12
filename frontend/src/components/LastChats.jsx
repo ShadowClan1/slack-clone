@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { getAllUsers, getUserData, setUnreadFalse } from "../redux/slices/chatscreen";
 import { useDispatch } from "react-redux";
+import { getUser } from "../localstorage manger/localstorage";
 
 const LastChats = () => {
   const dispath = useDispatch();
@@ -30,8 +31,8 @@ const LastChats = () => {
               className="px-5 text-white flex flex-row gap-2 hover:bg-white hover:text-purple-900 py-1"
               onClick={() => setChat(e)}
             >
-              <img src="https://i.pinimg.com/736x/7c/ee/6f/7cee6fa507169843e3430a90dd5377d4.jpg" alt="alt" className="w-5 h-5 rounded" />
-              <h1 className="relative w-full">{e.name}  {e?.online == true && <span className="  bg-green-400  rounded-full absolute  -left-4 w-2 h-2 bottom-0"></span>}
+              <img src={`${process.env.REACT_APP_IMAGES_URL}/${e?.profilePic}`} alt="alt" className="w-5 h-5 rounded" />
+              <h1 className="relative w-full">{e.name} {e._id == getUser()._id && "(you)"}  {e?.online == true && <span className="  bg-green-400  rounded-full absolute  -left-4 w-2 h-2 bottom-0"></span>}
               
              
 

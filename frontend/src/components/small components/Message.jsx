@@ -1,53 +1,30 @@
 import React from "react";
 import { htmlParser } from "../../common/htmlparser";
+import { agoReturn } from "../../common/time";
+import { useDispatch } from "react-redux";
+import { deleteMessage } from "../../redux/slices/messages";
+import { getUser } from "../../localstorage manger/localstorage";
 
 const Message = ({ data }) => {
-  const timeConverter = (time) => {
-    const date = new Date(time);
-    return `${
-      date.getHours().toString().length < 2
-        ? "0" + date.getHours().toString()
-        : date.getHours()
-    }:${
-      date.getMinutes().toString().length < 2
-        ? "0" + date.getMinutes().toString()
-        : date.getMinutes()
-    } -- ${date.getFullYear()}-${
-      (date.getMonth() + 1).toString().length < 2
-        ? "0" + (date.getMonth() + 1).toString()
-        : date.getMonth() + 1
-    }-${
-      date.getDate().toString().length < 2
-        ? "0" + date.getDate().toString()
-        : date.getDate()
-    }`;
-  };
+  const dispatch = useDispatch();
+ const handleDeleteMessage = () =>{
+  dispatch(deleteMessage({messageId : data._id, senderId : getUser()._id, toId : data.To, toGroup : data.ToGroup}))
+ }
 
-const agoReturn = (time) => {
-const date = new Date().getTime()
-const dateOld = new Date(time).getTime()
-let agoTiming =  (date - dateOld)/(24 * 60 * 60 * 1000)
-if(agoTiming < 1) {
-  agoTiming  = agoTiming *24
-  if(agoTiming >= 1){return `${Math.floor(agoTiming) } hours ago`}
 
-  agoTiming = agoTiming * 60 
-  
-  if(agoTiming >= 1 ) {return `${Math.floor(agoTiming) } minutes ago`}
-  agoTiming = agoTiming * 60 
-
-  if(agoTiming >= 1 ) {return `${Math.floor(agoTiming) } seconds ago`}
-} 
-if(agoTiming > 1) return `${Math.floor(agoTiming)} days ago`
-
-}
 
 
   return (
     <div className="flex flex-col px-5 py-3">
+      <div className="flex flex-row justify-between">
+
       <h1 className="text-bold text-purple-900 font-bold text-lg">
-        {data?.From?.name}
+        {data?.From?.name} 
       </h1>
+      <div className="group relative cursor-context-menu">... 
+     {data?.From?._id == getUser()._id && <div className="absolute -left-10 group-hover:flex -bottom-5 bg-slate-100 px-3 text-red-400 hidden cursor-pointer" onClick={handleDeleteMessage} >Delete</div>}
+      </div>
+      </div>
       <div>{htmlParser(data?.messageText)}</div>
       <p className="text-xs text-slate-400">  {agoReturn(data?.time)} </p>
     </div>

@@ -19,13 +19,18 @@ const userSchema = new Schema({
   email: {
     type: String,
   },
-  Groups: [{
-    type: Schema.Types.ObjectId,
-    ref: "Group",
-  }],
-  metaData : {
-    type : Object
-  }
+  profilePic: {
+    type: String,
+  },
+  Groups: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Group",
+    },
+  ],
+  metaData: {
+    type: Object,
+  },
 });
 
 const User = mongoose.model("User", userSchema);

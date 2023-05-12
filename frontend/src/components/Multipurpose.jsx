@@ -1,20 +1,28 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { createGroup } from "../redux/slices/group";
 import { getUser } from "../localstorage manger/localstorage";
+import { FiEdit2 } from "react-icons/fi";
+import { AiFillCheckCircle, AiFillDelete } from "react-icons/ai";
+import { changeProfilePic } from "../redux/slices/user";
 
 const Multipurpose = () => {
+  const imageRef = useRef(null);
   const type = useSelector((state) => state.chatScreen.single.type);
   const data = useSelector((state) => state.chatScreen.single.data);
   const users = useSelector((state) => state.chatScreen.array);
+
+  const [img, setImg] = useState(
+    data?.profilePic
+  );
   const dispath = useDispatch();
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [group, setGroup] = useState("");
+  const [profilePicture, setProfilePicture] = useState();
   const isInside = (arr1, element) => {
     for (let i = 0; i < arr1.length; i++) {
       if (arr1[i] == element) {
         return true;
-        break;
       }
     }
     return false;
@@ -40,6 +48,17 @@ const Multipurpose = () => {
         CreatedBy: getUser()._id,
       })
     );
+  };
+  const handleChangeProfilePicture = () => {
+    imageRef.current.click();
+  };
+  const profilePictureChange = (e) => {
+    setProfilePicture(e.target.files[0]);
+    setImg(URL.createObjectURL(e.target.files[0]));
+  };
+  const changeProfilePicture = () => {
+    dispath(changeProfilePic(profilePicture));
+    setProfilePicture();
   };
   return (
     <>
@@ -111,21 +130,17 @@ const Multipurpose = () => {
                 {data?.Members?.map((e) => {
                   return (
                     <div
-                      className="flex flex-row gap-4 items-center hover:bg-purple-700 hover:text-white hover:scale-105 hover:px-10"
+                      className="flex flex-row gap-4 items-center hover:bg-purple-700 hover:text-white "
                       style={{ transitionDuration: "0.5s" }}
                     >
                       <img
-                        src="https://i.pinimg.com/736x/7c/ee/6f/7cee6fa507169843e3430a90dd5377d4.jpg"
+                        src={`${process.env.REACT_APP_IMAGES_URL}/${data?.profilePic}`}
                         alt=""
                         className="w-4 h-4 rounded-full "
                       />
 
                       <h1>{e?.name}</h1>
-                      <span className="bg-red-400 rounded-xl px-1">
-
-D
-                      </span>
-
+                    { data?.CreatedBy?._id == getUser()._id && <span className="hover:bg-red-400 rounded-xl p-1 absolute right-5 "><AiFillDelete/></span>}
                     </div>
                   );
                 })}
@@ -165,6 +180,41 @@ D
                 alt=""
                 className="w-32 rounded-xl mt-5"
               />
+            </div>
+          </div>
+        )}
+        {type == "PROFILE" && (
+          <div className="flex flex-row" >
+            <div className="flex flex-col gap-3 w-3/4 ">
+              <h1 className="mt-5 px-5 text-xl">{data?.name}</h1>
+              <h1 className="mt-5 px-5 text-xl">{data?.email}</h1>
+              <h1 className="mt-5 px-5 text-xl">{data?.mobile}</h1>
+            </div>
+            <div className="relative">
+              <img src={img == undefined ? `${process.env.REACT_APP_IMAGES_URL}/${data?.profilePic}` : img} alt="" className="w-32 h-32 rounded-xl mt-5" />
+              <span
+                className="absolute right-0 bottom-4 rounded-full text-purple-900 bg-white p-2 hover:text-white hover:bg-purple-900"
+                onClick={handleChangeProfilePicture}
+              >
+                {" "}
+                <FiEdit2 />{" "}
+              </span>
+              <input
+                type="file"
+                name="file"
+                id="file"
+                className=" hidden "
+                onChange={profilePictureChange}
+                ref={imageRef}
+              />
+              {profilePicture && (
+                <button
+                  onClick={changeProfilePicture}
+                  className="bg-white p-[1px] rounded-full text-5xl absolute hover:text-white hover:bg-purple-900  text-purple-900 "
+                >
+                  <AiFillCheckCircle />
+                </button>
+              )}
             </div>
           </div>
         )}

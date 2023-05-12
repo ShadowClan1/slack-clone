@@ -9,6 +9,7 @@ import {
   typing,
 } from "../redux/slices/messages";
 import { getUser } from "../localstorage manger/localstorage";
+import { uploadPlugin } from "../common/uploadAdapter";
 
 const FooterBox = () => {
   const dispatch = useDispatch();
@@ -42,6 +43,12 @@ const FooterBox = () => {
             setMessage({ ...message, messageText: editor.getData() });
             textInsideTextBox()
           }}
+          config={{
+            // ckfinder : {
+            //   uploadUrl : `${process.env.REACT_APP_BACKEND}/ckeditorUpload`
+            // },
+            extraPlugins : [uploadPlugin]
+          }} 
           data={message.messageText}
           editor={ClassicEditor}
         />{" "}
